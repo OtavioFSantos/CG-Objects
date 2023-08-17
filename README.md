@@ -3,7 +3,7 @@ College Class
 
 ## How to run:
 
-Install Live Server extension on VSCode then 
+Install Live Server extension on VSCode then:
 
 Alt + L Alt + O
 
