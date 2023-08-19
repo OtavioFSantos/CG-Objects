@@ -140,7 +140,6 @@ function parseOBJ(text) {
 }
 
 function parseMapArgs(unparsedArgs) {
-  // TODO: handle options
   return unparsedArgs;
 }
 
@@ -153,7 +152,6 @@ function parseMTL(text) {
       material = {};
       materials[unparsedArgs] = material;
     },
-    /* eslint brace-style:0 */
     Ns(parts) {
       material.shininess = parseFloat(parts[0]);
     },
@@ -282,7 +280,6 @@ function generateTangents(position, texcoord, indices) {
 }
 
 async function main() {
-  // Get A WebGL context
   /** @type {HTMLCanvasElement} */
   const canvas = document.querySelector("#canvas");
   canvas.width = 1200; // Set your desired width
@@ -292,7 +289,6 @@ async function main() {
     return;
   }
 
-  // Tell the twgl to match position with a_position etc..
   twgl.setAttributePrefix("a_");
 
   const vs = `#version 300 es
@@ -380,9 +376,9 @@ async function main() {
   }
   `;
 
-  // compiles and links the shaders, looks up attribute and uniform locations
   const meshProgramInfo = twgl.createProgramInfo(gl, [vs, fs]);
 
+  // As modificações começam aqui
   const objHref =
     "medieval-castle-with-village/source/castle ostorozac/castle ostorozac.obj";
   const response = await fetch(objHref);
@@ -403,7 +399,6 @@ async function main() {
     defaultNormal: twgl.createTexture(gl, { src: [127, 127, 255, 0] }),
   };
 
-  // load texture for materials
   for (const material of Object.values(materials)) {
     Object.entries(material)
       .filter(([key]) => key.endsWith("Map"))
@@ -418,7 +413,7 @@ async function main() {
       });
   }
 
-  // Load the second OBJ and MTL files
+  // Segundo objeto
   const secondObjHref = "free-origami-twitter-bird/source/twitter.obj";
   const secondObjResponse = await fetch(secondObjHref);
   const secondObjText = await secondObjResponse.text();
@@ -432,7 +427,6 @@ async function main() {
   );
   const secondMaterials = parseMTL(secondMatTexts.join("\n"));
 
-  // Load textures for the second object's materials
   for (const material of Object.values(secondMaterials)) {
     Object.entries(material)
       .filter(([key]) => key.endsWith("Map"))
@@ -447,7 +441,7 @@ async function main() {
       });
   }
 
-  // Load the THIRD OBJ and MTL files
+  // Terceiro objeto
   const thirdObjHref = "low-poly-fish/source/finalfish.obj";
   const thirdObjResponse = await fetch(thirdObjHref);
   const thirdObjText = await thirdObjResponse.text();
@@ -461,7 +455,6 @@ async function main() {
   );
   const thirdMaterials = parseMTL(thirdMatTexts.join("\n"));
 
-  // Load textures for the THIRD object's materials
   for (const material of Object.values(thirdMaterials)) {
     Object.entries(material)
       .filter(([key]) => key.endsWith("Map"))
@@ -476,7 +469,6 @@ async function main() {
       });
   }
 
-  // hack the materials so we can see the specular map
   Object.values(materials).forEach((m) => {
     m.shininess = 25;
     m.specular = [3, 2, 1];
@@ -501,17 +493,14 @@ async function main() {
     } else {
       data.color = { value: [1, 1, 1, 1] };
     }
-
     if (data.texcoord && data.normal) {
       data.tangent = generateTangents(data.position, data.texcoord);
     } else {
       data.tangent = { value: [1, 0, 0] };
     }
-
     if (!data.texcoord) {
       data.texcoord = { value: [0, 0] };
     }
-
     if (!data.normal) {
       data.normal = { value: [0, 0, 1] };
     }
@@ -536,17 +525,14 @@ async function main() {
     } else {
       data.color = { value: [1, 1, 1, 1] };
     }
-
     if (data.texcoord && data.normal) {
       data.tangent = generateTangents(data.position, data.texcoord);
     } else {
       data.tangent = { value: [1, 0, 0] };
     }
-
     if (!data.texcoord) {
       data.texcoord = { value: [0, 0] };
     }
-
     if (!data.normal) {
       data.normal = { value: [0, 0, 1] };
     }
@@ -571,17 +557,14 @@ async function main() {
     } else {
       data.color = { value: [1, 1, 1, 1] };
     }
-
     if (data.texcoord && data.normal) {
       data.tangent = generateTangents(data.position, data.texcoord);
     } else {
       data.tangent = { value: [1, 0, 0] };
     }
-
     if (!data.texcoord) {
       data.texcoord = { value: [0, 0] };
     }
-
     if (!data.normal) {
       data.normal = { value: [0, 0, 1] };
     }
@@ -629,18 +612,14 @@ async function main() {
 
   const extents = getGeometriesExtents(obj.geometries);
   const range = m4.subtractVectors(extents.max, extents.min);
-  // amount to move the object so its center is at the origin
+
   const objOffset = m4.scaleVector(
     m4.addVectors(extents.min, m4.scaleVector(range, 0.4)),
     -0.3
   );
   const cameraTarget = [100, 15, 100];
-  // figure out how far away to move the camera so we can likely
-  // see the object.
   const radius = m4.length(range) * 0.2;
   const cameraPosition = m4.addVectors(cameraTarget, [0, 10, radius]);
-  // Set zNear and zFar to something hopefully appropriate
-  // for the size of this object.
   const zNear = radius / 100;
   const zFar = radius * 10;
 
@@ -648,47 +627,37 @@ async function main() {
     return (deg * Math.PI) / 180;
   }
 
-  // variables for camera animation
-  let animationDuration = 5000; // Animation duration in milliseconds
-  // Event listener for the animation duration input
+  let animationDuration = 5000;
   let animationDurationInput = document.getElementById(
     "animationDurationInput"
   );
   animationDurationInput.addEventListener("input", () => {
-    animationDuration = parseFloat(animationDurationInput.value); // Convert to milliseconds
+    animationDuration = parseFloat(animationDurationInput.value);
   });
 
-  const numPoints = 28; // Number of points
-  const controlPoints = [];
-  for (let i = 0; i < numPoints; i++) {
-    const t = i / (numPoints - 1); // Normalize t between 0 and 1
-    const value = bezierValue(
-      [
-        [0, 10],
-        [14, 26],
-        [33, 33],
-        [55, 34],
-        [73, 27],
-        [85, 17],
-        [92, 3],
-        [94, -14],
-        [80, -25],
-        [59, -28],
-        [41, -26],
-        [24, -18],
-        [11, -7],
-        [0, 10],
-      ],
-      t
-    );
-    controlPoints.push(value);
-  }
+  const numPoints = 14;
+  const controlPoints = [
+    [0, 10],
+    [14, 26],
+    [33, 33],
+    [55, 34],
+    [73, 27],
+    [85, 17],
+    [92, 3],
+    [94, -14],
+    [80, -25],
+    [59, -28],
+    [41, -26],
+    [24, -18],
+    [11, -7],
+    [0, 10],
+  ];
 
-  // Function to compute the value of the bezier curve at a given time (t)
+  // Computa o valor de bezier num dado tempo t
   function bezierValue(controlPoints, t) {
     const n = controlPoints.length - 1;
     let value = [0, 0];
-    const interval = 1 / n; // Equal interval between each pair of points
+    const interval = 1 / n; // Intervalo igual entre cada par de pontos
     let segmentIndex = Math.floor(t / interval);
     if (segmentIndex >= n) {
       segmentIndex = n - 1;
@@ -703,9 +672,8 @@ async function main() {
     return value;
   }
 
-  // Function to update the camera position along the bezier curve
   function updateCameraPosition(time) {
-    const t = (time % animationDuration) / animationDuration; // Normalize time between 0 and 1
+    const t = (time % animationDuration) / animationDuration;
     const interval = 1 / (numPoints - 1);
     const segmentIndex = Math.floor(t / interval);
     const tInterval = (t % interval) / interval;
@@ -719,7 +687,7 @@ async function main() {
     if (segmentIndex < numPoints - 2) {
       const nextPoint = controlPoints[segmentIndex + 2];
       cameraTarget[0] = nextPoint[0];
-      cameraTarget[1] = 15; // Keep the same y-coordinate
+      cameraTarget[1] = 15; // Manter a mesma coordenada y
       cameraTarget[2] = nextPoint[1];
     }
   }
@@ -736,6 +704,9 @@ async function main() {
     cameraTarget[2] = center[1];
   }
 
+  let secondObjectTime = 0;
+  let thirdObjectTime = 3;
+
   function startCameraAnimation() {
     let startTime = null;
 
@@ -744,8 +715,7 @@ async function main() {
       const elapsedTime = timestamp - startTime;
 
       if (elapsedTime >= animationDuration) {
-        // Animation complete, stop here
-        return;
+        return; // Animação completa
       }
 
       updateCameraPosition(elapsedTime);
@@ -753,10 +723,9 @@ async function main() {
     }
     requestAnimationFrame(animate);
   }
-  let secondObjectTime = 0;
-  let thirdObjectTime = 3;
-  function render(time) {
-    time *= 0.0; // convert to seconds
+
+  function render() {
+    let time = 0;
 
     updateCameraTarget();
     twgl.resizeCanvasToDisplaySize(gl.canvas);
@@ -779,23 +748,35 @@ async function main() {
     };
 
     gl.useProgram(meshProgramInfo.program);
-
-    // calls gl.uniform
     twgl.setUniforms(meshProgramInfo, sharedUniforms);
 
-    // compute the world matrix once since all parts
-    // are at the same space.
+    // Computa a matrix do mundo
     let u_world = m4.yRotation(time);
     u_world = m4.translate(u_world, ...objOffset);
     updateCameraPosition(time);
     secondObjectTime += 0.1;
     thirdObjectTime += 0.1;
 
-    // Render the second object
+    // Primeiro objeto
+    for (const { bufferInfo, vao, material } of parts) {
+      gl.bindVertexArray(vao);
+      twgl.setUniforms(
+        meshProgramInfo,
+        {
+          u_world,
+        },
+        material
+      );
+      twgl.drawBufferInfo(gl, bufferInfo);
+
+      const animateButton = document.getElementById("animateButton");
+      animateButton.addEventListener("click", startCameraAnimation);
+    }
+
+    // Segundo objeto
     for (const { bufferInfo, vao, material } of secondParts) {
-      // Set the attributes for the second part
       const scaledUWorld = m4.scale(u_world, 0.1, 0.1, 0.1);
-      const xOffset = Math.sin(secondObjectTime) * 35; // Adjust the animation parameters as needed
+      const xOffset = Math.sin(secondObjectTime) * 35;
       const translatedUWorld = m4.translate(scaledUWorld, -20, 210, xOffset);
       gl.bindVertexArray(vao);
       twgl.setUniforms(
@@ -808,11 +789,10 @@ async function main() {
       twgl.drawBufferInfo(gl, bufferInfo);
     }
 
-    // Render the THIRD object
+    // Terceiro objeto
     for (const { bufferInfo, vao, material } of thirdParts) {
-      // Set the attributes for the third part
       const scaledUWorld = m4.scale(u_world, 0.2, 0.2, 0.2);
-      const xOffset = Math.sin(thirdObjectTime) * 20; // Adjust the animation parameters as needed
+      const xOffset = Math.sin(thirdObjectTime) * 20;
       const translatedUWorld = m4.translate(scaledUWorld, -10, 95, xOffset);
       gl.bindVertexArray(vao);
       twgl.setUniforms(
@@ -824,35 +804,16 @@ async function main() {
       );
       twgl.drawBufferInfo(gl, bufferInfo);
     }
-
-    for (const { bufferInfo, vao, material } of parts) {
-      // set the attributes for this part.
-      gl.bindVertexArray(vao);
-      // calls gl.uniform
-      twgl.setUniforms(
-        meshProgramInfo,
-        {
-          u_world,
-        },
-        material
-      );
-      // calls gl.drawArrays or gl.drawElements
-      twgl.drawBufferInfo(gl, bufferInfo);
-      // Event listener for the animation button
-      const animateButton = document.getElementById("animateButton");
-      animateButton.addEventListener("click", startCameraAnimation);
-    }
-
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
-  // Additional code for the slider
+
   const cameraSlider = document.getElementById("cameraSlider");
   cameraSlider.addEventListener("input", () => {
     const sliderValue = parseFloat(cameraSlider.value);
-    const t = sliderValue / 360; // Normalize slider value between 0 and 1
-    const time = t * animationDuration; // Calculate corresponding time value
-    updateCameraPosition(time); // Update the camera position based on the time value
+    const t = sliderValue / 360;
+    const time = t * animationDuration;
+    updateCameraPosition(time);
   });
 }
 
