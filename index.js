@@ -733,6 +733,7 @@ async function main() {
     const targetTime = normalizedValue * animateTime;
     uptCamPos(targetTime);
   });
+  uptCamPos(time);
 
   function render() {
     uptCamTarget();
@@ -761,7 +762,6 @@ async function main() {
     // Computa a matrix do mundo
     let u_world = m4.yRotation(time);
     u_world = m4.translate(u_world, ...objOffset);
-    uptCamPos(time);
 
     // Primeiro objeto
     for (const { bufferInfo, vao, material } of parts) {
