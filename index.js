@@ -418,6 +418,7 @@ async function main() {
   const secondObjResponse = await fetch(secondObjHref);
   const secondObjText = await secondObjResponse.text();
   const secondObj = parseOBJ(secondObjText);
+  const secondBaseHref = new URL(secondObjHref, window.location.href);
   const secondMatTexts = await Promise.all(
     secondObj.materialLibs.map(async (filename) => {
       const matHref = new URL(filename, baseHref).href;
@@ -433,7 +434,7 @@ async function main() {
       .forEach(([key, filename]) => {
         let texture = textures[filename];
         if (!texture) {
-          const textureHref = new URL(filename, baseHref).href;
+          const textureHref = new URL(filename, secondBaseHref).href;
           texture = twgl.createTexture(gl, { src: textureHref, flipY: true });
           textures[filename] = texture;
         }
@@ -446,6 +447,7 @@ async function main() {
   const thirdObjResponse = await fetch(thirdObjHref);
   const thirdObjText = await thirdObjResponse.text();
   const thirdObj = parseOBJ(thirdObjText);
+  const thirdBaseHref = new URL(thirdObjHref, window.location.href);
   const thirdMatTexts = await Promise.all(
     thirdObj.materialLibs.map(async (filename) => {
       const matHref = new URL(filename, baseHref).href;
@@ -461,7 +463,7 @@ async function main() {
       .forEach(([key, filename]) => {
         let texture = textures[filename];
         if (!texture) {
-          const textureHref = new URL(filename, baseHref).href;
+          const textureHref = new URL(filename, thirdBaseHref).href;
           texture = twgl.createTexture(gl, { src: textureHref, flipY: true });
           textures[filename] = texture;
         }
@@ -627,16 +629,14 @@ async function main() {
     return (deg * Math.PI) / 180;
   }
 
-  let animationDuration = 5000;
-  let animationDurationInput = document.getElementById(
-    "animationDurationInput"
-  );
-  animationDurationInput.addEventListener("input", () => {
-    animationDuration = parseFloat(animationDurationInput.value);
+  let animateTime = 5000;
+  let animateTimeInput = document.getElementById("animateTimeInput");
+  animateTimeInput.addEventListener("input", () => {
+    animateTime = parseFloat(animateTimeInput.value);
   });
 
   const numPoints = 14;
-  const controlPoints = [
+  const points = [
     [0, 10],
     [14, 26],
     [33, 33],
@@ -654,8 +654,8 @@ async function main() {
   ];
 
   // Computa o valor de bezier num dado tempo t
-  function bezierValue(controlPoints, t) {
-    const n = controlPoints.length - 1;
+  function bezier(points, t) {
+    const n = points.length - 1;
     let value = [0, 0];
     const interval = 1 / n; // Intervalo igual entre cada par de pontos
     let segmentIndex = Math.floor(t / interval);
@@ -663,8 +663,8 @@ async function main() {
       segmentIndex = n - 1;
     }
     const tInterval = (t - segmentIndex * interval) / interval;
-    const p0 = controlPoints[segmentIndex];
-    const p1 = controlPoints[segmentIndex + 1];
+    const p0 = points[segmentIndex];
+    const p1 = points[segmentIndex + 1];
     const cameraX = p0[0] + (p1[0] - p0[0]) * tInterval;
     const cameraY = p0[1] + (p1[1] - p0[1]) * tInterval;
     value[0] = cameraX;
@@ -672,67 +672,75 @@ async function main() {
     return value;
   }
 
-  function updateCameraPosition(time) {
-    const t = (time % animationDuration) / animationDuration;
+  function uptCamPos(time) {
+    const t = (time % animateTime) / animateTime;
     const interval = 1 / (numPoints - 1);
     const segmentIndex = Math.floor(t / interval);
     const tInterval = (t % interval) / interval;
-    const p0 = controlPoints[segmentIndex];
-    const p1 = controlPoints[segmentIndex + 1];
-    const cameraX = bezierValue([p0, p1], tInterval)[0];
-    const cameraY = bezierValue([p0, p1], tInterval)[1];
+    const p0 = points[segmentIndex];
+    const p1 = points[segmentIndex + 1];
+    const cameraX = bezier([p0, p1], tInterval)[0];
+    const cameraY = bezier([p0, p1], tInterval)[1];
     cameraPosition[0] = cameraX;
     cameraPosition[2] = cameraY;
 
     if (segmentIndex < numPoints - 2) {
-      const nextPoint = controlPoints[segmentIndex + 2];
+      const nextPoint = points[segmentIndex + 2];
       cameraTarget[0] = nextPoint[0];
       cameraTarget[1] = 15; // Manter a mesma coordenada y
       cameraTarget[2] = nextPoint[1];
     }
   }
-  function updateCameraTarget() {
-    const sum = controlPoints.reduce(
+
+  function uptCamTarget() {
+    const sum = points.reduce(
       (acc, point) => [acc[0] + point[0], acc[1] + point[1]],
       [0, 0]
     );
-    const center = [
-      sum[0] / controlPoints.length,
-      sum[1] / controlPoints.length,
-    ];
+    const center = [sum[0] / points.length, sum[1] / points.length];
     cameraTarget[0] = center[0];
     cameraTarget[2] = center[1];
   }
 
+  let time = 0;
   let secondObjectTime = 0;
   let thirdObjectTime = 3;
 
-  function startCameraAnimation() {
+  function startCamAnimation() {
     let startTime = null;
 
     function animate(timestamp) {
       if (!startTime) startTime = timestamp;
       const elapsedTime = timestamp - startTime;
-
-      if (elapsedTime >= animationDuration) {
+      slider.value = (elapsedTime / animateTime) * 360;
+      if (elapsedTime >= animateTime) {
         return; // Animação completa
       }
-
-      updateCameraPosition(elapsedTime);
+      uptCamPos(elapsedTime);
       requestAnimationFrame(animate);
     }
     requestAnimationFrame(animate);
   }
 
-  function render() {
-    let time = 0;
+  const animateButton = document.getElementById("animateButton");
+  animateButton.addEventListener("click", () => {
+    startCamAnimation();
+  });
 
-    updateCameraTarget();
+  const slider = document.getElementById("slider");
+  slider.addEventListener("input", () => {
+    const normalizedValue = slider.value / 360;
+    const targetTime = normalizedValue * animateTime;
+    uptCamPos(targetTime);
+  });
+
+  function render() {
+    uptCamTarget();
     twgl.resizeCanvasToDisplaySize(gl.canvas);
     gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
     gl.enable(gl.DEPTH_TEST);
 
-    const fieldOfViewRadians = degToRad(60);
+    const fieldOfViewRadians = degToRad(70);
     const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
     const projection = m4.perspective(fieldOfViewRadians, aspect, zNear, zFar);
 
@@ -753,9 +761,7 @@ async function main() {
     // Computa a matrix do mundo
     let u_world = m4.yRotation(time);
     u_world = m4.translate(u_world, ...objOffset);
-    updateCameraPosition(time);
-    secondObjectTime += 0.1;
-    thirdObjectTime += 0.1;
+    uptCamPos(time);
 
     // Primeiro objeto
     for (const { bufferInfo, vao, material } of parts) {
@@ -768,9 +774,6 @@ async function main() {
         material
       );
       twgl.drawBufferInfo(gl, bufferInfo);
-
-      const animateButton = document.getElementById("animateButton");
-      animateButton.addEventListener("click", startCameraAnimation);
     }
 
     // Segundo objeto
@@ -804,17 +807,12 @@ async function main() {
       );
       twgl.drawBufferInfo(gl, bufferInfo);
     }
+
+    secondObjectTime += 0.1;
+    thirdObjectTime += 0.1;
     requestAnimationFrame(render);
   }
   requestAnimationFrame(render);
-
-  const cameraSlider = document.getElementById("cameraSlider");
-  cameraSlider.addEventListener("input", () => {
-    const sliderValue = parseFloat(cameraSlider.value);
-    const t = sliderValue / 360;
-    const time = t * animationDuration;
-    updateCameraPosition(time);
-  });
 }
 
 main();
